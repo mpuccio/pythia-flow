@@ -20,9 +20,9 @@ using std::vector;
 const float kDeuteronMass = 1.87561282;
 const float kProtonMass  = 0.938272013f;
 const float kNeutronMass = 0.939565378f;
-const float kDeltaMass = kProtonMass - kNeutronMass;
+const float kDeltaMass =  kNeutronMass - kProtonMass;
 const int   kDeuteronPDG = 1000010020;
-const float kSpinProbability = 1.;
+const float kSpinProbability = 0.75;
 const float kMaxDeltaP = 0.2f; // 200 MeV / c
 
 #define Sq(x) ((x)*(x))
@@ -54,10 +54,7 @@ float CoalescenceProbability(Particle* a, Particle* b) {
 
   const float s = Sq(e1 + e2) - (Sq(ap.px() + bp.px()) + Sq(ap.py() + bp.py()) + Sq(ap.pz() + bp.pz()));
   const float deltaP = sqrt(Sq(s - Sq(kDeltaMass)) / (4.f * s)); // relative momentum in CM frame
-  if (deltaP >= kMaxDeltaP) 
-    return -1.;
-  else 
-    return 1.f - (deltaP / kMaxDeltaP);
+  return 1.f - (deltaP / kMaxDeltaP);
 }
 
 void CoalescenceLoop(vector<Particle*> protons, vector<Particle*> neutrons, int pdg, ofstream &of, Rndm &rnd) {
@@ -65,7 +62,14 @@ void CoalescenceLoop(vector<Particle*> protons, vector<Particle*> neutrons, int 
   size_t nCand = 0;
   for (size_t iN = 0; iN < neutrons.size(); ++iN) {
     for (size_t iP = 0; iP < protons.size(); ++iP) {
-      float prob = CoalescenceProbability(protons[iP],neutrons[iN]);
+      // float prob = CoalescenceProbability(protons[iP],neutrons[iN]);
+      const Vec4 &ap = protons[iP]->p();
+      const Vec4 &bp = neutrons[iN]->p();
+      const Vec4 cm = ap + bp;
+      Vec4 delta = ap - bp;
+      delta.bstback(cm);
+
+      float prob = 1.f - (delta.pAbs() / (kMaxDeltaP));
       if (prob > 0) {
         candidates[nCand].p = protons[iP]; 
         candidates[nCand].n = neutrons[iN];
@@ -79,7 +83,7 @@ void CoalescenceLoop(vector<Particle*> protons, vector<Particle*> neutrons, int 
   int nDeut = 0;
   for (size_t iC = 0; iC < candidates.size(); ++iC) {
       /// Coalescence check
-    if (rnd.flat() <= candidates[iC].probability * kSpinProbability) {
+    if (rnd.flat() <= kSpinProbability) {
         /// Removal of the duplicates
       for (size_t iR = iC + 1; iR < candidates.size(); ++iR) {
         if (candidates[iR].p == candidates[iC].p || candidates[iR].n == candidates[iC].n) {
@@ -184,7 +188,7 @@ int main(int argc, char* argv[]) {
     /// Coalescence loop for deuterons
     CoalescenceLoop(protons,neutrons,kDeuteronPDG,ascii_io,pythia.rndm);
     /// Coalescence loop for anti-deuterons
-    CoalescenceLoop(antiprotons,antineutrons,kDeuteronPDG,ascii_io,pythia.rndm);
+    CoalescenceLoop(antiprotons,antineutrons,-kDeuteronPDG,ascii_io,pythia.rndm);
     
   }
   ascii_io << "#" << totEv << endl;
