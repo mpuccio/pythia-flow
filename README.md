@@ -10,7 +10,18 @@ then if you are in a HTCondor facility, and provided you already have installed 
 ```
 condor_submit_makeflow pythia.makeflow
 ```
-_Currently the code does not produce any meaningful results, I am still working on it_
+_This is for testing purpose, if you are interested in the coalescence part look below_
+
+### Coalescence generator
+To compile and run the generator:
+``` 
+make coalescence
+./coalescence command.cmnd out.txt
+```
+the output file is a list of all the (anti-)deuteron generated in this format:
+```
+pdg   pT  pz  eta 
+```
 
 ## DISCLAIMER
 All the code here is released under GPL 2.0. You can try, edit, redistribute etc. etc. all the 
