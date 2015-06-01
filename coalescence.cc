@@ -37,25 +37,6 @@ struct Candidate {
   float     probability;
 };
 
-float CoalescenceProbability(Particle* a, Particle* b) {
-  //
-  // Coalescence conditions as in
-  // A. J. Baltz et al., Phys. lett B 325(1994)7
-  //
-  // returns < 0 if coalescence is not possible
-  // otherwise returns a coalescence probability
-  //
-
-  const Vec4 &ap = a->p();
-  const Vec4 &bp = b->p();
-
-  const float e1 = sqrt(kProtonMass * kProtonMass + ap.pAbs2());
-  const float e2 = sqrt(kNeutronMass * kNeutronMass + bp.pAbs2());
-
-  const float s = Sq(e1 + e2) - (Sq(ap.px() + bp.px()) + Sq(ap.py() + bp.py()) + Sq(ap.pz() + bp.pz()));
-  const float deltaP = sqrt(Sq(s - Sq(kDeltaMass)) / (4.f * s)); // relative momentum in CM frame
-  return 1.f - (deltaP / kMaxDeltaP);
-}
 
 void CoalescenceLoop(vector<Particle*> protons, vector<Particle*> neutrons, int pdg, ofstream &of, Rndm &rnd) {
   vector<Candidate> candidates(neutrons.size() * protons.size());
@@ -65,11 +46,11 @@ void CoalescenceLoop(vector<Particle*> protons, vector<Particle*> neutrons, int 
       // float prob = CoalescenceProbability(protons[iP],neutrons[iN]);
       const Vec4 &ap = protons[iP]->p();
       const Vec4 &bp = neutrons[iN]->p();
-      const Vec4 cm = ap + bp;
-      Vec4 delta = ap - bp;
-      delta.bstback(cm);
+      
+      const float s = m2(ap,bp);
+      const float deltaP = sqrt((s - Sq(kDeltaMass)) * (s - Sq(kNeutronMass + kProtonMass)) / (4.f * s));
 
-      float prob = 1.f - (delta.pAbs() / (kMaxDeltaP));
+      float prob = 1.f - (deltaP / (kMaxDeltaP));
       if (prob > 0) {
         candidates[nCand].p = protons[iP]; 
         candidates[nCand].n = neutrons[iN];
